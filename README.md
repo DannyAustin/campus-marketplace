@@ -8,9 +8,9 @@ Campus Marketplace is a full-stack web application where users can list, browse,
 ## 🧱 Project Structure
 
 ```
-Code/
+campus-marketplace/
 ├── Campus-MarketPlace/        # React Frontend
-├── Campus-MarketPlace-go/     # Go Backend
+├── Campus-MarketPlace-go/     # Go Backend (REST API + MongoDB)
 ```
 
 ---
@@ -28,29 +28,32 @@ Code/
 
 ## ⚙️ Frontend Setup
 
-**Path**: `Code/Campus-MarketPlace`
+**Path**: `Campus-MarketPlace`
 
 ```bash
-cd Code/Campus-MarketPlace
+cd Campus-MarketPlace
 npm install
 npm start
 ```
 
-This starts the React development server.
+This starts the React development server at http://localhost:3000. Start the backend first (below) — the frontend expects it at http://localhost:8080.
 
 ---
 
 ## 🔧 Backend Setup
 
-**Path**: `Code/Campus-MarketPlace-go`
+**Path**: `Campus-MarketPlace-go`
 
 ```bash
-cd Code/Campus-MarketPlace-go
+cd Campus-MarketPlace-go
 go mod tidy
 go run .
 ```
 
-Make sure you have Go installed (v1.16+).
+Requirements:
+
+- **Go 1.23+** (see `go.mod`)
+- **MongoDB** running locally on `mongodb://localhost:27017` — the server connects to it on startup and exits if it is unreachable. The database `bookbay` is created automatically.
 
 ---
 
