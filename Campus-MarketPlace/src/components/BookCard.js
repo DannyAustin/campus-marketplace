@@ -1,22 +1,26 @@
 import React from 'react';
+import { api } from '../services/api';
 import '../styles/BookCard.css';
 
-function BookCard({ book, onAction, actionLabel, disabled }) {
-    // Convert price to number and handle invalid values
-    const formattedPrice = parseFloat(book.price) || 0;
+// `disabled` hides the action button entirely (e.g. sold items);
+// `busy` keeps it visible but unclickable while a request is in flight.
+function BookCard({ book, onAction, actionLabel, disabled, busy }) {
+    const price = Number(book.price) || 0;
 
     return (
         <div className="book-card">
-            <img 
-                src={`data:image/jpeg;base64,${book.image}`} 
-                alt={book.title} 
-            />
+            <img src={api.imageUrl(book)} alt={book.title} loading="lazy" />
             <div className="book-info">
                 <h3>{book.title}</h3>
-                <p>${formattedPrice.toFixed(2)}</p>
+                <p>${price.toFixed(2)}</p>
                 <p>{book.description}</p>
                 {!disabled && (
-                    <button onClick={() => onAction(book)} className="action-button">
+                    <button
+                        type="button"
+                        onClick={() => onAction(book)}
+                        className="action-button"
+                        disabled={busy}
+                    >
                         {actionLabel}
                     </button>
                 )}

@@ -1,3 +1,13 @@
 node_modules/
 .DS_Store
 build/
+
+# local environment files (keep the committed examples)
+.env
+.env.*
+!.env.example
+
+# compiled Go binary (module name is Campus-MarketPlace)
+Campus-MarketPlace-go/Campus-MarketPlace
+Campus-MarketPlace-go/Campus-MarketPlace.exe
+*.exe

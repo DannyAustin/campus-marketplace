@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import '../styles/App.css';  // Updated path
 
-function Header({ onSignOut, onSearch }) {  // Removed notificationCount from props
+function Header({ username, onSignOut, onSearch }) {
     const [searchTerm, setSearchTerm] = useState('');
     const location = useLocation();
 
@@ -17,20 +16,22 @@ function Header({ onSignOut, onSearch }) {  // Removed notificationCount from pr
 
             {location.pathname === '/home' && (
                 <input
-                    type="text"
+                    type="search"
                     className="search-input"
                     placeholder="Search items..."
+                    aria-label="Search items"
                     value={searchTerm}
                     onChange={handleSearchChange}
                 />
             )}
 
             <div className="header-right">
-                <Link to="/notifications">Sold</Link>
+                <Link to="/sold">Sold</Link>
                 <Link to="/add-book">Post an item</Link>
                 <Link to="/your-books">Items you listed</Link>
                 <Link to="/cart">Cart</Link>
-                <Link className="active" to="/" onClick={onSignOut}>Signout</Link>
+                {username && <span className="header-user">Hi, {username}</span>}
+                <Link className="active" to="/signin" onClick={onSignOut}>Sign out</Link>
             </div>
         </div>
     );

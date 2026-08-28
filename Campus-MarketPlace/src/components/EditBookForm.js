@@ -1,49 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api, MAX_IMAGE_BYTES } from '../services/api';
+import StatusMessage from './StatusMessage';
 
-function EditBookForm({ book, onSubmit, onCancel }) {
+function EditBookForm({ book, onSubmit, onCancel, saving, error }) {
+    const [title, setTitle] = useState(book.title);
+    const [price, setPrice] = useState(book.price);
+    const [description, setDescription] = useState(book.description || '');
     const [newImage, setNewImage] = useState(null);
-    const [formData, setFormData] = useState(book);
+    const [fileError, setFileError] = useState(null);
+    const [preview, setPreview] = useState(api.imageUrl(book));
+
+    // Show the freshly chosen file straight away, and release the object URL
+    // when it is replaced or the form closes.
+    useEffect(() => {
+        if (!newImage) {
+            setPreview(api.imageUrl(book));
+            return undefined;
+        }
+        const url = URL.createObjectURL(newImage);
+        setPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [newImage, book]);
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0] || null;
+        if (file && file.size > MAX_IMAGE_BYTES) {
+            setFileError('That photo is too large - the limit is 10 MB.');
+            setNewImage(null);
+            return;
+        }
+        setFileError(null);
+        setNewImage(file);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const submitData = new FormData();
-        submitData.append('title', formData.title);
-        submitData.append('price', formData.price);
-        submitData.append('description', formData.description);
-        submitData.append('id', formData.id);
-        
-        // Only append new image if one was selected
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('price', price);
+        formData.append('description', description);
+        // Only send a photo when a new one was picked; the backend keeps the
+        // existing one otherwise.
         if (newImage) {
-            submitData.append('image', newImage);
-        } else {
-            // Keep the existing image
-            submitData.append('image', formData.image);
+            formData.append('image', newImage);
         }
-        
-        onSubmit(submitData);
-    };
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setNewImage(file);
-            const reader = new FileReader();
-            reader.onload = () => {
-                const base64String = reader.result.split(',')[1];
-                setFormData(prev => ({
-                    ...prev,
-                    image: base64String
-                }));
-            };
-            reader.readAsDataURL(file);
-        }
+        onSubmit(formData);
     };
 
     return (
         <form className="edit-form" onSubmit={handleSubmit}>
             <h2>Edit item</h2>
             <div className="image-icon">
-                <img src={`data:image/jpeg;base64,${formData.image}`} alt="Book" />
+                <img src={preview} alt={title || 'Item'} />
                 <label htmlFor="fileInput">Change Photo</label>
                 <input
                     type="file"
@@ -52,28 +60,35 @@ function EditBookForm({ book, onSubmit, onCancel }) {
                     onChange={handleImageChange}
                 />
             </div>
-            <label>Title:</label>
+            <label htmlFor="edit-title">Title:</label>
             <input
+                id="edit-title"
                 type="text"
-                name="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                maxLength={120}
             />
-            <label>Price:</label>
+            <label htmlFor="edit-price">Price:</label>
             <input
+                id="edit-price"
                 type="number"
-                name="price"
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                min="0.01"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
             />
-            <label>Description:</label>
+            <label htmlFor="edit-description">Description:</label>
             <textarea
-                name="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                id="edit-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={2000}
             />
-            <button type="submit">Save Changes</button>
-            <button type="button" onClick={onCancel}>Cancel</button>
+            <StatusMessage type="error">{fileError || error}</StatusMessage>
+            <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+            <button type="button" onClick={onCancel} disabled={saving}>Cancel</button>
         </form>
     );
 }

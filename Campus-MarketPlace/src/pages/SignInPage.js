@@ -2,24 +2,26 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthContext } from '../context/AuthContext';
+import StatusMessage from '../components/StatusMessage';
 
 function SignInPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
     const { login } = useAuthContext();
 
     const handleSignIn = async (e) => {
         e.preventDefault();
+        setError(null);
+        setSubmitting(true);
         try {
-            const response = await api.login({ username, password });
-            if (!response.ok) throw new Error('Login failed');
-
-            const data = await response.json();
-            login(data.user_id);
+            login(await api.login({ username, password }));
             navigate('/home');
-        } catch (error) {
-            alert('Invalid username or password');
+        } catch (err) {
+            setError(err.message);
+            setSubmitting(false);
         }
     };
 
@@ -37,19 +39,27 @@ function SignInPage() {
                         <input
                             type="text"
                             placeholder="Username"
+                            autoComplete="username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            required
                         />
                         <input
                             type="password"
                             placeholder="Password"
+                            autoComplete="current-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            required
                         />
-                        <button type="submit">Login</button>
+                        <button type="submit" disabled={submitting}>
+                            {submitting ? 'Signing in…' : 'Login'}
+                        </button>
                     </form>
-                    <button 
-                        onClick={() => navigate('/signup')} 
+                    <StatusMessage type="error">{error}</StatusMessage>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/signup')}
                         className="SignUpButton"
                     >
                         New User? Register

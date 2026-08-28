@@ -1,36 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
-export const useBooks = (userId = null, includeSold = false) => {
+// Loads listings: everyone else's unsold items by default, or the caller's
+// own (including sold ones) with { mine: true }.
+export const useBooks = ({ mine = false } = {}) => {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const reload = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            setBooks(await (mine ? api.getMyBooks() : api.getBooks()));
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [mine]);
+
     useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const response = userId 
-                    ? await api.getUserBooks(userId)
-                    : await api.getAllBooks();
-                
-                if (!response.ok) throw new Error('Failed to fetch data');
-                
-                const data = await response.json();
-                // Only filter out sold books if includeSold is false
-                const filteredBooks = includeSold 
-                    ? data || []
-                    : (data || []).filter(book => !book.sold);
-                
-                setBooks(filteredBooks);
-            } catch (error) {
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+        reload();
+    }, [reload]);
 
-        fetchBooks();
-    }, [userId, includeSold]);
-
-    return { books, loading, error, setBooks };
+    return { books, setBooks, loading, error, reload };
 };

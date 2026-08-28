@@ -1,30 +1,63 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	"github.com/rs/cors"
 )
 
 func main() {
-	// Initialize the database
-	InitializeDatabase()
+	cfg := LoadConfig()
+	SetJWTSecret(cfg.JWTSecret)
 
-	// Set up routes
-	router := SetupRoutes()
+	client := InitializeDatabase(cfg)
+	disconnect := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := client.Disconnect(ctx); err != nil {
+			log.Println("Error disconnecting from MongoDB:", err)
+		}
+	}
 
-	// Enable CORS - You can configure CORS as needed
+	// CORS is configured here and only here. Origins come from ALLOWED_ORIGINS.
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"}, // Allow your React frontend to make requests
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedOrigins:   cfg.AllowedOrigins,
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
-		AllowCredentials: true,
+		AllowCredentials: false, // bearer tokens, not cookies
+		MaxAge:           600,
 	})
 
-	// Wrap the router with CORS middleware
-	handler := corsHandler.Handler(router)
+	server := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           logRequests(corsHandler.Handler(SetupRoutes())),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second, // image uploads
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
 
-	// Start the server
-	log.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	// Stop cleanly on Ctrl+C / SIGTERM so in-flight requests finish.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = server.Shutdown(shutdownCtx)
+	}()
+
+	log.Printf("Server listening on http://localhost:%s (allowed origins: %v)", cfg.Port, cfg.AllowedOrigins)
+	err := server.ListenAndServe()
+	disconnect()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+	log.Println("Server stopped")
 }

@@ -1,110 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { useAuthContext } from '../context/AuthContext';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import BookCard from '../components/BookCard';
+import StatusMessage from '../components/StatusMessage';
 import '../styles/CartPage.css';
 
+const money = (value) => `$${(Number(value) || 0).toFixed(2)}`;
+
 function CartPage() {
-    const { userId } = useAuthContext();
-    const [cartItems, setCartItems] = useState([]);
+    const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [total, setTotal] = useState(0);
+    const [status, setStatus] = useState(null);
+    const [pendingId, setPendingId] = useState(null);
+    const [checkingOut, setCheckingOut] = useState(false);
 
-    useEffect(() => {
-        const fetchCartItems = async () => {
-            if (!userId) {
-                setLoading(false);
-                return;
-            }
-
-            try {
-                console.log('Fetching cart for userId:', userId);
-                const response = await api.getCartItems(userId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Cart data received:', data);
-
-                if (!Array.isArray(data)) {
-                    console.error('Unexpected data format:', data);
-                    setCartItems([]);
-                    return;
-                }
-
-                setCartItems(data);
-            } catch (error) {
-                console.error('Error fetching cart:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCartItems();
-    }, [userId]);
-
-    useEffect(() => {
-        // Calculate total price whenever cart items change
-        const cartTotal = cartItems.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-        setTotal(cartTotal);
-    }, [cartItems]);
-
-    const handleRemoveFromCart = async (book) => {
+    // `quiet` reloads without replacing a message that is already showing
+    // (e.g. the checkout receipt).
+    const load = useCallback(async ({ quiet = false } = {}) => {
         try {
-            console.log('Removing book:', book);
-            // Match the ID structure used in addToCart
-            const cartItemId = book._id || book.id;
-            
-            if (!cartItemId || !userId) {
-                throw new Error('Missing required IDs');
-            }
+            setItems(await api.getCart());
+        } catch (err) {
+            if (!quiet) setStatus({ type: 'error', text: err.message });
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-            const response = await api.removeFromCart(userId, cartItemId);
-            
-            // Mirror addToCart's response handling
-            const responseText = await response.text();
-            console.log('Remove from cart response:', responseText);
-            
-            if (!response.ok) {
-                throw new Error(responseText || 'Failed to remove item');
-            }
+    useEffect(() => {
+        load();
+    }, [load]);
 
-            // Update local state using same filtering logic as addToCart
-            setCartItems(prevItems => prevItems.filter(item => (item._id || item.id) !== cartItemId));
+    const total = useMemo(
+        () => items.reduce((sum, item) => sum + (Number(item.price) || 0), 0),
+        [items]
+    );
 
-        } catch (error) {
-            console.error('Remove from cart error:', error);
-            alert(`Error: ${error.message}`);
+    const handleRemove = async (book) => {
+        if (pendingId) return; // one request at a time
+        setPendingId(book.id);
+        setStatus(null);
+        try {
+            await api.removeFromCart(book.id);
+            setItems(prev => prev.filter(item => item.id !== book.id));
+            setStatus({ type: 'info', text: `"${book.title}" was removed from your cart.` });
+        } catch (err) {
+            setStatus({ type: 'error', text: err.message });
+        } finally {
+            setPendingId(null);
         }
     };
 
     const handleCheckout = async () => {
+        setCheckingOut(true);
+        setStatus(null);
         try {
-            // Mark each book in cart as sold
-            for (const book of cartItems) {
-                const response = await api.updateBookStatus(book._id || book.id, userId);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Failed to update book: ${errorText}`);
-                }
+            // One request; the server claims each item atomically and tells us
+            // exactly what went through.
+            const result = await api.checkout();
+            const lines = [];
+            if (result.purchased.length > 0) {
+                lines.push(`Purchased (${money(result.total)}): ${result.purchased.map(p => p.title).join(', ')}`);
             }
-
-            // Clear the cart after successful checkout
-            for (const book of cartItems) {
-                const bookId = book._id || book.id;
-                await api.removeFromCart(userId, bookId);
+            if (result.unavailable.length > 0) {
+                lines.push('Not available: ' + result.unavailable.map(u => `${u.title} — ${u.reason}`).join('; '));
             }
-
-            // Clear local cart state
-            setCartItems([]);
-            setTotal(0);
-            alert('Checkout successful! Books have been marked as sold.');
-
-        } catch (error) {
-            console.error('Checkout error:', error);
-            alert('Failed to complete checkout. Please try again.');
+            setStatus({
+                type: result.unavailable.length === 0 ? 'success' : 'info',
+                text: lines.join('\n'),
+            });
+            await load({ quiet: true }); // keep the receipt on screen
+        } catch (err) {
+            setStatus({ type: 'error', text: err.message });
+            if (err.status !== 401) await load({ quiet: true });
+        } finally {
+            setCheckingOut(false);
         }
     };
 
@@ -113,43 +81,44 @@ function CartPage() {
     return (
         <div className="cart-page">
             <h1 className="cart-title">Shopping Cart</h1>
+            <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
             <div className="cart-content">
                 <div className="cart-items">
-                    {cartItems.length === 0 ? (
+                    {items.length === 0 ? (
                         <p className="empty-cart">Your cart is empty</p>
                     ) : (
-                        cartItems.map(book => (
+                        items.map(book => (
                             <div key={book.id} className="cart-item">
                                 <BookCard
                                     book={book}
-                                    onAction={() => handleRemoveFromCart(book)}
-                                    actionLabel="Remove"
+                                    onAction={handleRemove}
+                                    actionLabel={pendingId === book.id ? 'Removing…' : 'Remove'}
+                                    busy={pendingId === book.id || checkingOut}
                                 />
-                                <div className="item-price">
-                                    ${parseFloat(book.price).toFixed(2)}
-                                </div>
+                                <div className="item-price">{money(book.price)}</div>
                             </div>
                         ))
                     )}
                 </div>
-                {cartItems.length > 0 && (
+                {items.length > 0 && (
                     <div className="cart-summary">
                         <div className="summary-box">
                             <h2>Order Summary</h2>
                             <div className="summary-row">
-                                <span>Items ({cartItems.length})</span>
-                                <span>${total.toFixed(2)}</span>
+                                <span>Items ({items.length})</span>
+                                <span>{money(total)}</span>
                             </div>
                             <div className="summary-total">
                                 <span>Total</span>
-                                <span>${total.toFixed(2)}</span>
+                                <span>{money(total)}</span>
                             </div>
-                            <button 
+                            <button
+                                type="button"
                                 className="checkout-button"
                                 onClick={handleCheckout}
-                                disabled={cartItems.length === 0}
+                                disabled={checkingOut || pendingId !== null}
                             >
-                                Proceed to Checkout
+                                {checkingOut ? 'Processing…' : 'Proceed to Checkout'}
                             </button>
                         </div>
                     </div>

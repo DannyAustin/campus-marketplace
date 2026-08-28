@@ -1,34 +1,48 @@
 import React, { useState } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import { api } from '../services/api';
+import { api, MAX_IMAGE_BYTES } from '../services/api';
+import StatusMessage from '../components/StatusMessage';
+
+const emptyForm = { title: '', price: '', description: '', image: null };
 
 function AddBookPage() {
-    const { userId } = useAuthContext();
-    const [formData, setFormData] = useState({
-        title: '',
-        price: '',
-        description: '',
-        image: null
-    });
-    const [message, setMessage] = useState('');
+    const [formData, setFormData] = useState(emptyForm);
+    const [status, setStatus] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+
+    const update = (field) => (e) => {
+        const value = field === 'image' ? e.target.files[0] || null : e.target.value;
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!formData.image) {
+            setStatus({ type: 'error', text: 'Please choose a photo for your item.' });
+            return;
+        }
+        if (formData.image.size > MAX_IMAGE_BYTES) {
+            setStatus({ type: 'error', text: 'That photo is too large - the limit is 10 MB.' });
+            return;
+        }
+
         const submitData = new FormData();
         submitData.append('title', formData.title);
         submitData.append('price', formData.price);
         submitData.append('description', formData.description);
         submitData.append('image', formData.image);
-        submitData.append('userId', userId);
 
+        const form = e.target;
+        setSubmitting(true);
+        setStatus(null);
         try {
-            const response = await api.addBook(submitData);
-            if (!response.ok) throw new Error('Failed to add book');
-            
-            setMessage('Book added successfully!');
-            setFormData({ title: '', price: '', description: '', image: null });
-        } catch (error) {
-            setMessage('Failed to add book. Please try again.');
+            const book = await api.addBook(submitData);
+            setStatus({ type: 'success', text: `"${book.title}" is now listed for $${Number(book.price).toFixed(2)}.` });
+            setFormData(emptyForm);
+            form.reset(); // clears the (uncontrolled) file input as well
+        } catch (err) {
+            setStatus({ type: 'error', text: err.message });
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -41,8 +55,10 @@ function AddBookPage() {
                     id="title"
                     type="text"
                     value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={update('title')}
                     className="form-input"
+                    required
+                    maxLength={120}
                 />
             </div>
 
@@ -51,9 +67,12 @@ function AddBookPage() {
                 <input
                     id="price"
                     type="number"
+                    min="0.01"
+                    step="0.01"
                     value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={update('price')}
                     className="form-input"
+                    required
                 />
             </div>
 
@@ -63,23 +82,28 @@ function AddBookPage() {
                     id="description"
                     type="text"
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={update('description')}
                     className="form-input"
+                    maxLength={2000}
                 />
             </div>
 
             <div className="form-group">
-                <label htmlFor="image">Image:</label>
+                <label htmlFor="image">Photo (required):</label>
                 <input
                     id="image"
                     type="file"
-                    onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.files[0] }))}
+                    accept="image/*"
+                    onChange={update('image')}
                     className="form-input"
+                    required
                 />
             </div>
 
-            <button type="submit" className="submit-btn">Post Item</button>
-            {message && <p className="message">{message}</p>}
+            <button type="submit" className="submit-btn" disabled={submitting}>
+                {submitting ? 'Posting…' : 'Post Item'}
+            </button>
+            <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
         </form>
     );
 }
