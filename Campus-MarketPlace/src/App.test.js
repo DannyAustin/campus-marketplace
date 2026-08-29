@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from './App';
 
 // Minimal stand-in for the Go backend: every response is JSON, like the real thing.
@@ -139,6 +139,51 @@ test('the edit dialog takes focus, closes on Escape and returns focus to the Edi
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(edit).toHaveFocus();
+});
+
+test('the theme switch applies and remembers light / dark / system', async () => {
+  // Pretend the OS prefers dark, and capture the change listener.
+  let osChange = null;
+  const originalMatchMedia = window.matchMedia;
+  window.matchMedia = jest.fn(() => ({
+    matches: true,
+    addEventListener: (_, handler) => { osChange = handler; },
+    removeEventListener: () => {},
+  }));
+  try {
+    storedSession();
+    render(<App />);
+    await screen.findByText(/the market is empty/i);
+    const html = document.documentElement;
+    expect(html).toHaveAttribute('data-theme', 'dark'); // system → dark
+    expect(screen.getByRole('button', { name: /^system$/i })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: /^light$/i }));
+    expect(html).toHaveAttribute('data-theme', 'light');
+    expect(localStorage.getItem('theme')).toBe('light');
+    expect(screen.getByRole('button', { name: /^light$/i })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: /^dark$/i }));
+    expect(html).toHaveAttribute('data-theme', 'dark');
+    expect(localStorage.getItem('theme')).toBe('dark');
+
+    fireEvent.click(screen.getByRole('button', { name: /^system$/i }));
+    expect(localStorage.getItem('theme')).toBeNull();
+    expect(html).toHaveAttribute('data-theme', 'dark');
+    // The OS flips to light while "System" is selected → the page follows.
+    act(() => osChange({ matches: false }));
+    expect(html).toHaveAttribute('data-theme', 'light');
+  } finally {
+    window.matchMedia = originalMatchMedia;
+  }
+});
+
+test('a saved dark theme is applied on load, including on the sign-in page', () => {
+  localStorage.setItem('theme', 'dark');
+  render(<App />);
+  expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+  expect(screen.getByRole('button', { name: /^dark$/i })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('drops the session when the server rejects the token', async () => {

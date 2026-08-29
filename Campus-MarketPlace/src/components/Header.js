@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiSearch, FiGrid, FiPlusCircle, FiTag, FiShoppingCart, FiCheckCircle, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
+import ThemeToggle from './ThemeToggle';
 
 // "Browse" duplicates the brand link on desktop, so it only appears in the phone menu.
 const NAV_ITEMS = [
@@ -109,6 +110,7 @@ function Header({ username, onSignOut }) {
                             <span className="nav-link__label">{label}</span>
                         </NavLink>
                     ))}
+                    <ThemeToggle className="topbar__theme" />
                     {username && (
                         <span className="user-chip" title={`Signed in as ${username}`}>
                             <span className="avatar" aria-hidden="true">{username.charAt(0)}</span>

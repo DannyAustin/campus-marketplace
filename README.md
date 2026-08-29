@@ -45,8 +45,9 @@ campus-marketplace/
 - Filters live in the URL (`/home?category=Textbooks&max_price=50`), so they survive refresh and can be shared
 - Cart with one-click checkout that can never sell the same item twice
 - "Sold" page showing which of your items have been bought
-- Responsive UI (phone → desktop) that follows the OS light/dark preference, keyboard-navigable
-  with WCAG AA colour contrast, skeleton loading and an accessible edit dialog
+- Responsive UI (phone → desktop) with a Light / Dark / System theme switch (remembered per
+  browser, no flash on load), keyboard-navigable with WCAG AA colour contrast, skeleton loading
+  and an accessible edit dialog
 
 ---
 
@@ -173,7 +174,9 @@ or buy your own listing; an item can only be sold once.
 ## Design system
 
 Everything visual lives in `src/styles/App.css`: CSS custom-property tokens (colours, radii, shadows)
-with a `prefers-color-scheme: dark` set, then base styles, the top bar, buttons (`.btn-*`), form
+on `:root`, overridden by `:root[data-theme="dark"]`. The theme attribute is set by a tiny inline
+script in `public/index.html` (saved choice, else the OS preference) and kept current by
+`src/context/ThemeContext.js`; the switch itself is `components/ThemeToggle.js`. Then base styles, the top bar, buttons (`.btn-*`), form
 fields (`.field`, `.input`, `.select`, `.textarea`, `.dropzone`), status banners, badges/chips, the
 listing grid and cards, skeletons, empty states, the auth split screen, the modal and the cart.
 Breakpoints: ≤1240px icon-only nav, ≤900px hamburger menu / stacked auth, ≤760px single-column

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Route, BrowserRouter, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuthContext } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import SignInPage from './pages/SignInPage';
@@ -43,11 +44,13 @@ function AppContent() {
 
 function App() {
     return (
-        <BrowserRouter>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
-        </BrowserRouter>
+        <ThemeProvider>
+            <BrowserRouter>
+                <AuthProvider>
+                    <AppContent />
+                </AuthProvider>
+            </BrowserRouter>
+        </ThemeProvider>
     );
 }
 

@@ -4,8 +4,19 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#111a2b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" />
+    <script>
+      // Apply the saved colour theme before the first paint so there is no flash.
+      (function () {
+        var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        var stored = null;
+        try { stored = localStorage.getItem('theme'); } catch (e) { /* storage blocked: fall back to the OS preference */ }
+        var theme = stored === 'light' || stored === 'dark' ? stored : system;
+        document.documentElement.setAttribute('data-theme', theme);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#111a2b' : '#ffffff');
+      })();
+    </script>
     <meta
       name="description"
       content="Campus Marketplace - buy and sell items with your fellow students"

@@ -54,41 +54,42 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1220;
-    --bg-elevated: #111a2b;
-    --bg-elevated-rgb: 17, 26, 43;
-    --bg-muted: #162033;
-    --text: #e5e9f0;
-    --text-muted: #a3afc2;    /* 8.6:1 on --bg */
-    --text-faint: #8593a8;    /* 5.9:1 */
-    --border: #22304a;
-    --border-strong: #2f3f5c;
-    --border-input: #4b5b75;
+/* The active theme is always explicit: <html data-theme="light|dark">, set by
+   the inline script in public/index.html and kept current by ThemeContext
+   (which resolves the "system" choice via prefers-color-scheme). */
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --bg-elevated: #111a2b;
+  --bg-elevated-rgb: 17, 26, 43;
+  --bg-muted: #162033;
+  --text: #e5e9f0;
+  --text-muted: #a3afc2;    /* 8.6:1 on --bg */
+  --text-faint: #8593a8;    /* 5.9:1 */
+  --border: #22304a;
+  --border-strong: #2f3f5c;
+  --border-input: #4b5b75;
 
-    /* Keep the fill dark enough for white text (5.2:1); use a lighter blue for text. */
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-rgb: 96, 165, 250;
-    --link: #93c5fd;          /* 9.5:1 on --bg */
-    --primary-soft: #1e3a8a;
-    --primary-text-on-soft: #bfdbfe;
-    --accent: #7c3aed;
+  /* Keep the fill dark enough for white text (5.2:1); use a lighter blue for text. */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-rgb: 96, 165, 250;
+  --link: #93c5fd;          /* 9.5:1 on --bg */
+  --primary-soft: #1e3a8a;
+  --primary-text-on-soft: #bfdbfe;
+  --accent: #7c3aed;
 
-    --success: #86efac;
-    --success-soft: #14532d;
-    --danger: #fca5a5;
-    --danger-soft: #7f1d1d;
-    --info: #bfdbfe;
-    --info-soft: #1e3a8a;
+  --success: #86efac;
+  --success-soft: #14532d;
+  --danger: #fca5a5;
+  --danger-soft: #7f1d1d;
+  --info: #bfdbfe;
+  --info-soft: #1e3a8a;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.6);
 
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 /* ---------- Base ---------- */
@@ -343,6 +344,58 @@ a:hover { text-decoration: underline; }
   background: linear-gradient(135deg, #7c3aed, #2563eb);
   flex-shrink: 0;
   text-transform: uppercase;
+}
+
+/* Light / System / Dark switch */
+.theme-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-muted);
+}
+
+.theme-toggle__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.theme-toggle__option:hover { color: var(--text); }
+
+/* Pressed option: a filled pill, so the state is visible without colour perception. */
+.theme-toggle__option.is-active {
+  background-color: var(--primary-soft);
+  color: var(--primary-text-on-soft);
+  box-shadow: inset 0 0 0 1px var(--border-input);
+}
+
+/* Icon-only in the top bar and on the sign-in pages; labels stay available to assistive tech. */
+.topbar__theme { margin-left: 4px; }
+.topbar__theme .theme-toggle__label,
+.auth__theme .theme-toggle__label {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+.auth__theme {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
 }
 
 .topbar__toggle {
@@ -810,6 +863,7 @@ select.select,
 /* ---------- Auth pages ---------- */
 
 .auth {
+  position: relative;
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1025,6 +1079,18 @@ select.select,
 
 /* ---------- Responsive ---------- */
 
+/* Up to a wide laptop the username competes with the search box: show the avatar only. */
+@media (max-width: 1320px) and (min-width: 901px) {
+  .user-chip { padding: 3px; margin-left: 4px; }
+  .user-chip__name {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
+  }
+}
+
 /* Tablet & small laptop: keep nav icons, hide the labels (still read by AT). */
 @media (max-width: 1240px) and (min-width: 901px) {
   .nav-link { padding: 8px 10px; }
@@ -1063,9 +1129,18 @@ select.select,
   .user-chip { margin: 6px 0 0; max-width: none; }
   .topbar__nav .nav-link { justify-content: flex-start; }
   .nav-link--mobile-only { display: inline-flex; }
+  /* In the phone menu the theme switch shows its labels and spans the row. */
+  .topbar__theme { margin: 8px 0 4px; align-self: stretch; }
+  .topbar__theme .theme-toggle__option { flex: 1; justify-content: center; }
+  .topbar__theme .theme-toggle__label {
+    position: static;
+    width: auto; height: auto;
+    margin: 0; overflow: visible; clip: auto;
+  }
+  .auth__theme { top: 12px; right: 12px; }
 
   .auth { grid-template-columns: 1fr; }
-  .auth__panel { padding: 32px 24px; min-height: 0; }
+  .auth__panel { padding: 64px 24px 32px; min-height: 0; } /* room for the theme switch */
   .auth__features { display: none; }
   .auth__headline { font-size: 1.5rem; }
 

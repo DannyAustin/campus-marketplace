@@ -1,10 +1,12 @@
 import React from 'react';
 import { FiCheck } from 'react-icons/fi';
+import ThemeToggle from './ThemeToggle';
 
 // Split-screen shell for the sign-in / sign-up pages.
 function AuthLayout({ children }) {
     return (
         <div className="auth">
+            <ThemeToggle className="auth__theme" />
             <aside className="auth__panel">
                 <div className="brand">
                     <span className="brand__mark" aria-hidden="true">CM</span>
