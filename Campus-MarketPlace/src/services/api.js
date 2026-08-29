@@ -104,24 +104,34 @@ async function authRequest(path, credentials) {
     return data;
 }
 
+// Builds "?a=1&b=2" from an object, skipping empty values.
+const queryString = (params = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') qs.set(key, value);
+    });
+    const s = qs.toString();
+    return s ? `?${s}` : '';
+};
+
 export const api = {
     // auth
     register: (credentials) => authRequest('/register', credentials),
     login: (credentials) => authRequest('/login', credentials),
     me: () => request('/me'),
 
-    // listings
-    getBooks: () => request('/books'),
-    getMyBooks: () => request('/books/mine'),
-    addBook: (formData) => request('/books', { method: 'POST', body: formData }),
-    updateBook: (bookId, formData) => request(`/books/${bookId}`, { method: 'PUT', body: formData }),
+    // listings — `params` may contain q, category, condition, min_price, max_price, sort
+    getListings: (params) => request(`/listings${queryString(params)}`),
+    getMyListings: () => request('/listings/mine'),
+    addListing: (formData) => request('/listings', { method: 'POST', body: formData }),
+    updateListing: (listingId, formData) => request(`/listings/${listingId}`, { method: 'PUT', body: formData }),
 
     // cart
     getCart: () => request('/cart'),
-    addToCart: (bookId) => request('/cart', { method: 'POST', body: { book_id: bookId } }),
-    removeFromCart: (bookId) => request(`/cart/${bookId}`, { method: 'DELETE' }),
+    addToCart: (listingId) => request('/cart', { method: 'POST', body: { listing_id: listingId } }),
+    removeFromCart: (listingId) => request(`/cart/${listingId}`, { method: 'DELETE' }),
     checkout: () => request('/checkout', { method: 'POST' }),
 
     // Photos are served by the backend; the URL already carries a cache-busting version.
-    imageUrl: (book) => (book?.image_url ? `${API_URL}${book.image_url}` : ''),
+    imageUrl: (listing) => (listing?.image_url ? `${API_URL}${listing.image_url}` : ''),
 };

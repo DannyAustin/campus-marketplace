@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { api, MAX_IMAGE_BYTES } from '../services/api';
+import { CATEGORIES, CONDITIONS } from '../constants/listingOptions';
 import StatusMessage from '../components/StatusMessage';
 
-const emptyForm = { title: '', price: '', description: '', image: null };
+const emptyForm = { title: '', price: '', description: '', category: '', condition: '', image: null };
 
-function AddBookPage() {
+function NewListingPage() {
     const [formData, setFormData] = useState(emptyForm);
     const [status, setStatus] = useState(null);
     const [submitting, setSubmitting] = useState(false);
@@ -29,14 +30,16 @@ function AddBookPage() {
         submitData.append('title', formData.title);
         submitData.append('price', formData.price);
         submitData.append('description', formData.description);
+        submitData.append('category', formData.category);
+        submitData.append('condition', formData.condition);
         submitData.append('image', formData.image);
 
         const form = e.target;
         setSubmitting(true);
         setStatus(null);
         try {
-            const book = await api.addBook(submitData);
-            setStatus({ type: 'success', text: `"${book.title}" is now listed for $${Number(book.price).toFixed(2)}.` });
+            const listing = await api.addListing(submitData);
+            setStatus({ type: 'success', text: `"${listing.title}" is now listed for $${Number(listing.price).toFixed(2)}.` });
             setFormData(emptyForm);
             form.reset(); // clears the (uncontrolled) file input as well
         } catch (err) {
@@ -47,7 +50,7 @@ function AddBookPage() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="book-form">
+        <form onSubmit={handleSubmit} className="listing-form">
             <h2>Post an item</h2>
             <div className="form-group">
                 <label htmlFor="title">Title:</label>
@@ -60,6 +63,36 @@ function AddBookPage() {
                     required
                     maxLength={120}
                 />
+            </div>
+
+            <div className="form-row">
+                <div className="form-group">
+                    <label htmlFor="category">Category:</label>
+                    <select
+                        id="category"
+                        value={formData.category}
+                        onChange={update('category')}
+                        className="form-input"
+                        required
+                    >
+                        <option value="">Choose…</option>
+                        {CATEGORIES.map(option => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="condition">Condition:</label>
+                    <select
+                        id="condition"
+                        value={formData.condition}
+                        onChange={update('condition')}
+                        className="form-input"
+                        required
+                    >
+                        <option value="">Choose…</option>
+                        {CONDITIONS.map(option => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                </div>
             </div>
 
             <div className="form-group">
@@ -108,4 +141,4 @@ function AddBookPage() {
     );
 }
 
-export default AddBookPage;
+export default NewListingPage;

@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useBooks } from '../hooks/useBooks';
-import BookCard from '../components/BookCard';
-import EditBookForm from '../components/EditBookForm';
+import { useListings } from '../hooks/useListings';
+import ListingCard from '../components/ListingCard';
+import EditListingForm from '../components/EditListingForm';
 import StatusMessage from '../components/StatusMessage';
 import { api } from '../services/api';
 
-function UserBooksPage() {
-    const { books, setBooks, loading, error } = useBooks({ mine: true });
-    const [editingBook, setEditingBook] = useState(null);
+function MyListingsPage() {
+    const { listings, setListings, loading, error } = useListings({ mine: true });
+    const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [editError, setEditError] = useState(null);
     const [status, setStatus] = useState(null);
 
-    const unsold = books.filter(book => !book.sold);
-    const soldCount = books.length - unsold.length;
+    const unsold = listings.filter(listing => !listing.sold);
+    const soldCount = listings.length - unsold.length;
 
     const handleEditSubmit = async (formData) => {
         setSaving(true);
         setEditError(null);
         try {
             // The backend returns the updated listing (with a fresh image URL).
-            const updated = await api.updateBook(editingBook.id, formData);
-            setBooks(prev => prev.map(book => (book.id === updated.id ? updated : book)));
-            setEditingBook(null);
+            const updated = await api.updateListing(editing.id, formData);
+            setListings(prev => prev.map(listing => (listing.id === updated.id ? updated : listing)));
+            setEditing(null);
             setStatus({ type: 'success', text: `"${updated.title}" was updated.` });
         } catch (err) {
             setEditError(err.message);
@@ -37,33 +37,33 @@ function UserBooksPage() {
 
     return (
         <div>
-            <h1 className="books-heading">Items you have listed in Marketplace!</h1>
+            <h1 className="page-title">Items you have listed in Marketplace!</h1>
             <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
             {soldCount > 0 && (
                 <p className="page-note">
-                    {soldCount} of your {books.length} items {soldCount === 1 ? 'has' : 'have'} sold —{' '}
+                    {soldCount} of your {listings.length} items {soldCount === 1 ? 'has' : 'have'} sold —{' '}
                     <Link to="/sold">see them here</Link>.
                 </p>
             )}
             <div className="card-container">
-                {editingBook && (
-                    <EditBookForm
-                        key={editingBook.id}
-                        book={editingBook}
+                {editing && (
+                    <EditListingForm
+                        key={editing.id}
+                        listing={editing}
                         onSubmit={handleEditSubmit}
-                        onCancel={() => { setEditingBook(null); setEditError(null); }}
+                        onCancel={() => { setEditing(null); setEditError(null); }}
                         saving={saving}
                         error={editError}
                     />
                 )}
                 {unsold.length === 0 ? (
-                    <div className="no-books">You have no items for sale right now.</div>
+                    <div className="no-listings">You have no items for sale right now.</div>
                 ) : (
-                    unsold.map(book => (
-                        <BookCard
-                            key={book.id}
-                            book={book}
-                            onAction={() => { setEditError(null); setEditingBook(book); }}
+                    unsold.map(listing => (
+                        <ListingCard
+                            key={listing.id}
+                            listing={listing}
+                            onAction={() => { setEditError(null); setEditing(listing); }}
                             actionLabel="Edit"
                             busy={saving}
                         />
@@ -74,4 +74,4 @@ function UserBooksPage() {
     );
 }
 
-export default UserBooksPage;
+export default MyListingsPage;

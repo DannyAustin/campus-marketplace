@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { api, MAX_IMAGE_BYTES } from '../services/api';
+import { CATEGORIES, CONDITIONS } from '../constants/listingOptions';
 import StatusMessage from './StatusMessage';
 
-function EditBookForm({ book, onSubmit, onCancel, saving, error }) {
-    const [title, setTitle] = useState(book.title);
-    const [price, setPrice] = useState(book.price);
-    const [description, setDescription] = useState(book.description || '');
+function EditListingForm({ listing, onSubmit, onCancel, saving, error }) {
+    const [title, setTitle] = useState(listing.title);
+    const [price, setPrice] = useState(listing.price);
+    const [description, setDescription] = useState(listing.description || '');
+    const [category, setCategory] = useState(listing.category || '');
+    const [condition, setCondition] = useState(listing.condition || '');
     const [newImage, setNewImage] = useState(null);
     const [fileError, setFileError] = useState(null);
-    const [preview, setPreview] = useState(api.imageUrl(book));
+    const [preview, setPreview] = useState(api.imageUrl(listing));
 
     // Show the freshly chosen file straight away, and release the object URL
     // when it is replaced or the form closes.
     useEffect(() => {
         if (!newImage) {
-            setPreview(api.imageUrl(book));
+            setPreview(api.imageUrl(listing));
             return undefined;
         }
         const url = URL.createObjectURL(newImage);
         setPreview(url);
         return () => URL.revokeObjectURL(url);
-    }, [newImage, book]);
+    }, [newImage, listing]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0] || null;
@@ -39,6 +42,8 @@ function EditBookForm({ book, onSubmit, onCancel, saving, error }) {
         formData.append('title', title);
         formData.append('price', price);
         formData.append('description', description);
+        formData.append('category', category);
+        formData.append('condition', condition);
         // Only send a photo when a new one was picked; the backend keeps the
         // existing one otherwise.
         if (newImage) {
@@ -79,6 +84,26 @@ function EditBookForm({ book, onSubmit, onCancel, saving, error }) {
                 onChange={(e) => setPrice(e.target.value)}
                 required
             />
+            <label htmlFor="edit-category">Category:</label>
+            <select
+                id="edit-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+            >
+                <option value="">Choose…</option>
+                {CATEGORIES.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
+            <label htmlFor="edit-condition">Condition:</label>
+            <select
+                id="edit-condition"
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+                required
+            >
+                <option value="">Choose…</option>
+                {CONDITIONS.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
             <label htmlFor="edit-description">Description:</label>
             <textarea
                 id="edit-description"
@@ -93,4 +118,4 @@ function EditBookForm({ book, onSubmit, onCancel, saving, error }) {
     );
 }
 
-export default EditBookForm;
+export default EditListingForm;

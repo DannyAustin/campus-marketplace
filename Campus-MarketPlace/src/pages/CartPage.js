@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
-import BookCard from '../components/BookCard';
+import ListingCard from '../components/ListingCard';
 import StatusMessage from '../components/StatusMessage';
 import '../styles/CartPage.css';
 
@@ -34,14 +34,14 @@ function CartPage() {
         [items]
     );
 
-    const handleRemove = async (book) => {
+    const handleRemove = async (listing) => {
         if (pendingId) return; // one request at a time
-        setPendingId(book.id);
+        setPendingId(listing.id);
         setStatus(null);
         try {
-            await api.removeFromCart(book.id);
-            setItems(prev => prev.filter(item => item.id !== book.id));
-            setStatus({ type: 'info', text: `"${book.title}" was removed from your cart.` });
+            await api.removeFromCart(listing.id);
+            setItems(prev => prev.filter(item => item.id !== listing.id));
+            setStatus({ type: 'info', text: `"${listing.title}" was removed from your cart.` });
         } catch (err) {
             setStatus({ type: 'error', text: err.message });
         } finally {
@@ -87,15 +87,15 @@ function CartPage() {
                     {items.length === 0 ? (
                         <p className="empty-cart">Your cart is empty</p>
                     ) : (
-                        items.map(book => (
-                            <div key={book.id} className="cart-item">
-                                <BookCard
-                                    book={book}
+                        items.map(listing => (
+                            <div key={listing.id} className="cart-item">
+                                <ListingCard
+                                    listing={listing}
                                     onAction={handleRemove}
-                                    actionLabel={pendingId === book.id ? 'Removing…' : 'Remove'}
-                                    busy={pendingId === book.id || checkingOut}
+                                    actionLabel={pendingId === listing.id ? 'Removing…' : 'Remove'}
+                                    busy={pendingId === listing.id || checkingOut}
                                 />
-                                <div className="item-price">{money(book.price)}</div>
+                                <div className="item-price">{money(listing.price)}</div>
                             </div>
                         ))
                     )}

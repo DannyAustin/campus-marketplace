@@ -101,7 +101,6 @@ body {
   text-align: center;
 }
 
-.books-heading,
 .page-title {
   text-align: center;
   margin: 24px 0 8px;
@@ -119,15 +118,96 @@ body {
   justify-content: center;
   gap: 20px;
   padding: 20px;
+  transition: opacity 0.15s;
 }
 
-.no-books,
+/* Previous results stay visible but dimmed while new filters load. */
+.card-container[aria-busy="true"] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.no-listings,
 .loading {
   width: 100%;
   text-align: center;
   color: #333;
   padding: 40px 20px;
   font-size: 1.1rem;
+}
+
+/* ---------- Filters (Home) ---------- */
+
+.filter-bar {
+  max-width: 1100px;
+  margin: 8px auto 0;
+  padding: 12px 16px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border: 1px solid #b8c9d6;
+  border-radius: 999px;
+  background-color: #fff;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.chip:hover {
+  background-color: #e8f1fb;
+}
+
+.chip--active,
+.chip--active:hover {
+  background-color: #0b5ed7;
+  border-color: #0b5ed7;
+  color: #fff;
+}
+
+.chip--clear {
+  border-style: dashed;
+  color: #b02a37;
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.filter-controls select,
+.filter-controls input {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: #fff;
+}
+
+.filter-controls input[type="number"] {
+  width: 90px;
 }
 
 /* ---------- Inline feedback (replaces alert()) ---------- */
@@ -272,7 +352,7 @@ body {
 
 /* ---------- Post an item ---------- */
 
-.book-form {
+.listing-form {
   width: 100%;
   max-width: 600px;
   margin: 24px auto;
@@ -280,13 +360,23 @@ body {
   background-color: #f9f9f9;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: left;
 }
 
-.book-form h2 {
+.listing-form h2 {
   text-align: center;
   font-size: 1.8rem;
   margin-bottom: 20px;
   color: #333;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
 }
 
 .form-group {
@@ -308,6 +398,7 @@ body {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 1rem;
+  background-color: #fff;
   transition: border-color 0.3s ease;
 }
 
@@ -342,8 +433,13 @@ body {
 }
 
 @media (max-width: 600px) {
-  .book-form {
+  .listing-form {
     padding: 15px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
   }
 
   .submit-btn {
@@ -358,12 +454,15 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 300px;
+  width: 320px;
+  max-height: 90vh;
+  overflow-y: auto;
   background-color: white;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 1000;
+  text-align: left;
 }
 
 .edit-form h2 {
@@ -379,12 +478,14 @@ body {
 
 .edit-form input[type="text"],
 .edit-form input[type="number"],
+.edit-form select,
 .edit-form textarea {
   width: 100%;
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
   margin-bottom: 15px;
+  background-color: #fff;
 }
 
 .edit-form button[type="submit"] {

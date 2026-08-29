@@ -1,24 +1,24 @@
 import React from 'react';
-import { useBooks } from '../hooks/useBooks';
-import BookCard from '../components/BookCard';
+import { useListings } from '../hooks/useListings';
+import ListingCard from '../components/ListingCard';
 import StatusMessage from '../components/StatusMessage';
 
 function SoldItemsPage() {
-    const { books, loading, error } = useBooks({ mine: true });
-    const soldBooks = books.filter(book => book.sold);
+    const { listings, loading, error } = useListings({ mine: true });
+    const sold = listings.filter(listing => listing.sold);
 
     if (loading) return <div className="loading">Loading your sold items...</div>;
     if (error) return <StatusMessage type="error">{error}</StatusMessage>;
 
     return (
-        <div className="page-container">
+        <div>
             <h1 className="page-title">Your Sold Items!</h1>
             <div className="card-container">
-                {soldBooks.length === 0 ? (
-                    <div className="no-books">No items have been sold yet.</div>
+                {sold.length === 0 ? (
+                    <div className="no-listings">No items have been sold yet.</div>
                 ) : (
-                    soldBooks.map(book => (
-                        <BookCard key={book.id} book={book} disabled actionLabel="Sold" />
+                    sold.map(listing => (
+                        <ListingCard key={listing.id} listing={listing} disabled actionLabel="Sold" />
                     ))
                 )}
             </div>

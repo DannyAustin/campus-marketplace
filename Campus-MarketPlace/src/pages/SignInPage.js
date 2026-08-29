@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthContext } from '../context/AuthContext';
 import StatusMessage from '../components/StatusMessage';
+import { afterAuthPath } from '../utils/afterAuthPath';
 
 function SignInPage() {
     const [username, setUsername] = useState('');
@@ -10,6 +11,8 @@ function SignInPage() {
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const redirectTo = afterAuthPath(location.state);
     const { login } = useAuthContext();
 
     const handleSignIn = async (e) => {
@@ -18,7 +21,7 @@ function SignInPage() {
         setSubmitting(true);
         try {
             login(await api.login({ username, password }));
-            navigate('/home');
+            navigate(redirectTo, { replace: true });
         } catch (err) {
             setError(err.message);
             setSubmitting(false);
@@ -59,7 +62,7 @@ function SignInPage() {
                     <StatusMessage type="error">{error}</StatusMessage>
                     <button
                         type="button"
-                        onClick={() => navigate('/signup')}
+                        onClick={() => navigate('/signup', { state: location.state })}
                         className="SignUpButton"
                     >
                         New User? Register

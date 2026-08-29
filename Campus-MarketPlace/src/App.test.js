@@ -19,6 +19,7 @@ const originalFetch = global.fetch;
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.replaceState({}, '', '/');
   global.fetch = jest.fn((url) => {
     if (String(url).endsWith('/me')) return jsonResponse({ user_id: 'u1', username: 'danny' });
     return jsonResponse([]);
@@ -50,8 +51,44 @@ test('sends the bearer token with authenticated requests', async () => {
   storedSession();
   render(<App />);
   await screen.findByText(/the market is empty/i);
-  const [, options] = global.fetch.mock.calls.find(([url]) => String(url).endsWith('/books'));
+  const [, options] = global.fetch.mock.calls.find(([url]) => String(url).includes('/listings'));
   expect(options.headers.Authorization).toBe('Bearer test-token');
+});
+
+test('passes URL filters through to the listings API', async () => {
+  storedSession();
+  window.history.replaceState({}, '', '/home?category=Textbooks&sort=price_asc&q=calc');
+  render(<App />);
+  expect(await screen.findByText(/nothing matches your filters/i)).toBeInTheDocument();
+  const [url] = global.fetch.mock.calls.find(([u]) => String(u).includes('/listings?'));
+  const params = new URL(url).searchParams;
+  expect(params.get('category')).toBe('Textbooks');
+  expect(params.get('sort')).toBe('price_asc');
+  expect(params.get('q')).toBe('calc');
+  expect(screen.getByRole('button', { name: 'Textbooks' })).toHaveClass('chip--active');
+  expect(screen.getByLabelText(/search items/i)).toHaveValue('calc');
+});
+
+test('a shared filter link survives the sign-in detour', async () => {
+  const { fireEvent } = require('@testing-library/react');
+  global.fetch = jest.fn((url, options) => {
+    if (String(url).endsWith('/login')) return jsonResponse({ token: 'fresh-token', user_id: 'u1', username: 'danny' });
+    if (String(url).endsWith('/me')) return jsonResponse({ user_id: 'u1', username: 'danny' });
+    return jsonResponse([]);
+  });
+  window.history.replaceState({}, '', '/home?category=Tickets&q=concert');
+  render(<App />);
+  // Not signed in: bounced to the login page...
+  expect(await screen.findByRole('heading', { name: /login/i })).toBeInTheDocument();
+  fireEvent.change(screen.getByPlaceholderText(/username/i), { target: { value: 'danny' } });
+  fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'longenough1' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+  // ...and after signing in, back to the filtered Home the link pointed at.
+  expect(await screen.findByText(/nothing matches your filters/i)).toBeInTheDocument();
+  expect(window.location.search).toBe('?category=Tickets&q=concert');
+  expect(screen.getByRole('button', { name: 'Tickets' })).toHaveClass('chip--active');
+  const [url] = global.fetch.mock.calls.find(([u]) => String(u).includes('/listings?'));
+  expect(new URL(url).searchParams.get('q')).toBe('concert');
 });
 
 test('drops the session when the server rejects the token', async () => {

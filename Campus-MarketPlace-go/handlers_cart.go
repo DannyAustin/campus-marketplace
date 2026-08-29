@@ -14,12 +14,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// bookSummary fetches the small set of fields cart logic needs.
-func bookSummary(ctx context.Context, id primitive.ObjectID) (Book, error) {
-	var book Book
-	err := db.Collection(booksCollection).FindOne(ctx, bson.M{"_id": id},
-		options.FindOne().SetProjection(bson.M{"title": 1, "price": 1, "user_id": 1, "sold": 1, "buyer_id": 1})).Decode(&book)
-	return book, err
+// listingSummary fetches the small set of fields cart logic needs.
+func listingSummary(ctx context.Context, id primitive.ObjectID) (Listing, error) {
+	var listing Listing
+	err := db.Collection(listingsCollection).FindOne(ctx, bson.M{"_id": id},
+		options.FindOne().SetProjection(bson.M{"title": 1, "price": 1, "user_id": 1, "sold": 1, "buyer_id": 1})).Decode(&listing)
+	return listing, err
 }
 
 // cartRows returns the caller's cart entries.
@@ -40,43 +40,43 @@ func cartRows(ctx context.Context, userID primitive.ObjectID) ([]CartItem, error
 
 // AddToCartHandler puts someone else's unsold listing in the caller's cart.
 //
-//	POST /cart  {"book_id": "..."}  -> 201 CartItem
+//	POST /cart  {"listing_id": "..."}  -> 201 CartItem
 func AddToCartHandler(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		BookID string `json:"book_id"`
+		ListingID string `json:"listing_id"`
 	}
 	if err := decodeJSON(w, r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	bookID, err := primitive.ObjectIDFromHex(body.BookID)
+	listingID, err := primitive.ObjectIDFromHex(body.ListingID)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid book ID")
+		writeError(w, http.StatusBadRequest, "Invalid listing ID")
 		return
 	}
 	me := currentUserID(r)
 
-	book, err := bookSummary(r.Context(), bookID)
+	listing, err := listingSummary(r.Context(), listingID)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		writeError(w, http.StatusNotFound, "Listing not found")
 		return
 	}
 	if err != nil {
-		serverError(w, "looking up book", err)
+		serverError(w, "looking up listing", err)
 		return
 	}
-	if book.UserID == me {
+	if listing.UserID == me {
 		writeError(w, http.StatusBadRequest, "You can't add your own listing to your cart")
 		return
 	}
-	if book.Sold {
+	if listing.Sold {
 		writeError(w, http.StatusConflict, "This item has already been sold")
 		return
 	}
 
-	item := CartItem{UserID: me, BookID: bookID, AddedAt: time.Now()}
+	item := CartItem{UserID: me, ListingID: listingID, AddedAt: time.Now()}
 	result, err := db.Collection(cartCollection).InsertOne(r.Context(), item)
-	if isDuplicateKey(err) { // unique index on (user_id, book_id)
+	if isDuplicateKey(err) { // unique index on (user_id, listing_id)
 		writeError(w, http.StatusConflict, "This item is already in your cart")
 		return
 	}
@@ -92,7 +92,7 @@ func AddToCartHandler(w http.ResponseWriter, r *http.Request) {
 // GetCartHandler returns the listings in the caller's cart that are still
 // available. Rows pointing at sold or deleted listings are pruned as we go.
 //
-//	GET /cart  -> 200 [Book]
+//	GET /cart  -> 200 [Listing]
 func GetCartHandler(w http.ResponseWriter, r *http.Request) {
 	me := currentUserID(r)
 	rows, err := cartRows(r.Context(), me)
@@ -101,54 +101,54 @@ func GetCartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(rows) == 0 {
-		writeJSON(w, http.StatusOK, []Book{})
+		writeJSON(w, http.StatusOK, []Listing{})
 		return
 	}
 
 	ids := make([]primitive.ObjectID, 0, len(rows))
 	for _, row := range rows {
-		ids = append(ids, row.BookID)
+		ids = append(ids, row.ListingID)
 	}
 
-	books, err := findBooks(r.Context(), bson.M{"_id": bson.M{"$in": ids}, "sold": false})
+	listings, err := findListings(r.Context(), bson.M{"_id": bson.M{"$in": ids}, "sold": false}, sortOrders["newest"])
 	if err != nil {
-		serverError(w, "loading cart books", err)
+		serverError(w, "loading cart listings", err)
 		return
 	}
 
 	// Drop cart rows whose listing has been sold or removed since it was added.
-	if len(books) < len(rows) {
-		available := make(map[primitive.ObjectID]bool, len(books))
-		for _, b := range books {
-			available[b.ID] = true
+	if len(listings) < len(rows) {
+		available := make(map[primitive.ObjectID]bool, len(listings))
+		for _, l := range listings {
+			available[l.ID] = true
 		}
 		var stale []primitive.ObjectID
 		for _, row := range rows {
-			if !available[row.BookID] {
-				stale = append(stale, row.BookID)
+			if !available[row.ListingID] {
+				stale = append(stale, row.ListingID)
 			}
 		}
 		if _, err := db.Collection(cartCollection).DeleteMany(r.Context(),
-			bson.M{"user_id": me, "book_id": bson.M{"$in": stale}}); err != nil {
+			bson.M{"user_id": me, "listing_id": bson.M{"$in": stale}}); err != nil {
 			log.Println("pruning stale cart rows:", err)
 		}
 	}
 
-	writeJSON(w, http.StatusOK, books)
+	writeJSON(w, http.StatusOK, listings)
 }
 
 // RemoveFromCartHandler takes a listing out of the caller's cart.
 //
-//	DELETE /cart/{bookId}  -> 200 {message}
+//	DELETE /cart/{listingId}  -> 200 {message}
 func RemoveFromCartHandler(w http.ResponseWriter, r *http.Request) {
-	bookID, err := primitive.ObjectIDFromHex(mux.Vars(r)["bookId"])
+	listingID, err := primitive.ObjectIDFromHex(mux.Vars(r)["listingId"])
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid book ID")
+		writeError(w, http.StatusBadRequest, "Invalid listing ID")
 		return
 	}
 
 	result, err := db.Collection(cartCollection).DeleteOne(r.Context(),
-		bson.M{"user_id": currentUserID(r), "book_id": bookID})
+		bson.M{"user_id": currentUserID(r), "listing_id": listingID})
 	if err != nil {
 		serverError(w, "removing from cart", err)
 		return
@@ -203,35 +203,35 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	for _, row := range rows {
-		book, err := bookSummary(ctx, row.BookID)
+		listing, err := listingSummary(ctx, row.ListingID)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			result.Unavailable = append(result.Unavailable, checkoutLine{ID: row.BookID.Hex(), Title: "(removed listing)", Reason: "This listing no longer exists"})
+			result.Unavailable = append(result.Unavailable, checkoutLine{ID: row.ListingID.Hex(), Title: "(removed listing)", Reason: "This listing no longer exists"})
 			continue
 		}
 		if err != nil {
-			serverError(w, "looking up cart book", err)
+			serverError(w, "looking up cart listing", err)
 			return
 		}
 
-		claim, err := db.Collection(booksCollection).UpdateOne(ctx,
-			bson.M{"_id": row.BookID, "sold": false, "user_id": bson.M{"$ne": me}},
+		claim, err := db.Collection(listingsCollection).UpdateOne(ctx,
+			bson.M{"_id": row.ListingID, "sold": false, "user_id": bson.M{"$ne": me}},
 			bson.M{"$set": bson.M{"sold": true, "buyer_id": me, "sold_at": now, "updated_at": now}})
 		if err != nil {
-			serverError(w, "marking book sold", err)
+			serverError(w, "marking listing sold", err)
 			return
 		}
 
-		line := checkoutLine{ID: book.ID.Hex(), Title: book.Title, Price: book.Price}
+		line := checkoutLine{ID: listing.ID.Hex(), Title: listing.Title, Price: listing.Price}
 		switch {
 		case claim.MatchedCount == 1:
 			result.Purchased = append(result.Purchased, line)
-			result.Total += book.Price
-			purchasedIDs = append(purchasedIDs, book.ID)
-		case book.UserID == me:
+			result.Total += listing.Price
+			purchasedIDs = append(purchasedIDs, listing.ID)
+		case listing.UserID == me:
 			// Only possible for cart rows written by the previous version.
 			line.Reason = "This is your own listing"
 			result.Unavailable = append(result.Unavailable, line)
-		case book.Sold && book.BuyerID != nil && *book.BuyerID == me:
+		case listing.Sold && listing.BuyerID != nil && *listing.BuyerID == me:
 			// A retry after an interrupted checkout: it is already theirs.
 			line.Reason = "Already purchased by you"
 			result.Unavailable = append(result.Unavailable, line)
@@ -247,7 +247,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("clearing cart after checkout:", err)
 	}
 	if len(purchasedIDs) > 0 {
-		if _, err := db.Collection(cartCollection).DeleteMany(ctx, bson.M{"book_id": bson.M{"$in": purchasedIDs}}); err != nil {
+		if _, err := db.Collection(cartCollection).DeleteMany(ctx, bson.M{"listing_id": bson.M{"$in": purchasedIDs}}); err != nil {
 			log.Println("removing sold items from other carts:", err)
 		}
 	}

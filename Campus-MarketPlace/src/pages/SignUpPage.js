@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthContext } from '../context/AuthContext';
 import StatusMessage from '../components/StatusMessage';
+import { afterAuthPath } from '../utils/afterAuthPath';
 
 function SignUpPage() {
     const [username, setUsername] = useState('');
@@ -10,6 +11,8 @@ function SignUpPage() {
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const redirectTo = afterAuthPath(location.state);
     const { login } = useAuthContext();
 
     const handleSignUp = async (e) => {
@@ -19,7 +22,7 @@ function SignUpPage() {
         try {
             // Registering signs the new user straight in.
             login(await api.register({ username: username.trim(), password }));
-            navigate('/home');
+            navigate(redirectTo, { replace: true });
         } catch (err) {
             setError(err.message);
             setSubmitting(false);
@@ -64,7 +67,7 @@ function SignUpPage() {
                         </button>
                     </form>
                     <StatusMessage type="error">{error}</StatusMessage>
-                    <button type="button" onClick={() => navigate('/signin')} className="SignInButton">
+                    <button type="button" onClick={() => navigate('/signin', { state: location.state })} className="SignInButton">
                         Already have an account? Sign In
                     </button>
                 </div>
