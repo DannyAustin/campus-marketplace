@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FiImage } from 'react-icons/fi';
 import { api, MAX_IMAGE_BYTES } from '../services/api';
 import { CATEGORIES, CONDITIONS } from '../constants/listingOptions';
 import StatusMessage from '../components/StatusMessage';
@@ -9,6 +11,18 @@ function NewListingPage() {
     const [formData, setFormData] = useState(emptyForm);
     const [status, setStatus] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [preview, setPreview] = useState('');
+
+    // Preview the chosen photo, releasing the object URL when it changes.
+    useEffect(() => {
+        if (!formData.image) {
+            setPreview('');
+            return undefined;
+        }
+        const url = URL.createObjectURL(formData.image);
+        setPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [formData.image]);
 
     const update = (field) => (e) => {
         const value = field === 'image' ? e.target.files[0] || null : e.target.value;
@@ -19,6 +33,7 @@ function NewListingPage() {
         e.preventDefault();
         if (!formData.image) {
             setStatus({ type: 'error', text: 'Please choose a photo for your item.' });
+            document.getElementById('image')?.focus();
             return;
         }
         if (formData.image.size > MAX_IMAGE_BYTES) {
@@ -50,94 +65,117 @@ function NewListingPage() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="listing-form">
-            <h2>Post an item</h2>
-            <div className="form-group">
-                <label htmlFor="title">Title:</label>
-                <input
-                    id="title"
-                    type="text"
-                    value={formData.title}
-                    onChange={update('title')}
-                    className="form-input"
-                    required
-                    maxLength={120}
-                />
+        <div>
+            <div className="page-header">
+                <h1 className="page-title">Post an item</h1>
+                <span className="page-subtitle">It appears on the marketplace right away.</span>
             </div>
 
-            <div className="form-row">
-                <div className="form-group">
-                    <label htmlFor="category">Category:</label>
-                    <select
-                        id="category"
-                        value={formData.category}
-                        onChange={update('category')}
-                        className="form-input"
-                        required
-                    >
-                        <option value="">Choose…</option>
-                        {CATEGORIES.map(option => <option key={option} value={option}>{option}</option>)}
-                    </select>
+            <form onSubmit={handleSubmit} className="form-card listing-form">
+                <label className="dropzone" htmlFor="image">
+                    <span className="dropzone__preview">
+                        {preview ? <img src={preview} alt="" /> : <FiImage size={28} aria-hidden="true" />}
+                    </span>
+                    <span className="dropzone__text">
+                        <strong>{formData.image ? `Photo: ${formData.image.name}` : 'Choose a photo'}</strong>
+                        <span id="image-hint">JPEG, PNG, GIF or WebP · up to 10 MB · required</span>
+                    </span>
+                    <input
+                        id="image"
+                        type="file"
+                        className="visually-hidden"
+                        accept="image/*"
+                        aria-describedby="image-hint"
+                        onChange={update('image')}
+                    />
+                </label>
+
+                <div className="form-grid">
+                    <div className="field field--full">
+                        <label htmlFor="title">Title</label>
+                        <input
+                            id="title"
+                            type="text"
+                            className="input"
+                            placeholder="e.g. Calculus textbook, 8th edition"
+                            value={formData.title}
+                            onChange={update('title')}
+                            required
+                            maxLength={120}
+                        />
+                    </div>
+
+                    <div className="field">
+                        <label htmlFor="category">Category</label>
+                        <select
+                            id="category"
+                            className="select"
+                            value={formData.category}
+                            onChange={update('category')}
+                            required
+                        >
+                            <option value="">Choose…</option>
+                            {CATEGORIES.map(option => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="field">
+                        <label htmlFor="condition">Condition</label>
+                        <select
+                            id="condition"
+                            className="select"
+                            value={formData.condition}
+                            onChange={update('condition')}
+                            required
+                        >
+                            <option value="">Choose…</option>
+                            {CONDITIONS.map(option => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="field">
+                        <label htmlFor="price">Price ($)</label>
+                        <input
+                            id="price"
+                            type="number"
+                            className="input"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={formData.price}
+                            onChange={update('price')}
+                            required
+                        />
+                    </div>
+
+                    <div className="field field--full">
+                        <label htmlFor="description">Description</label>
+                        <textarea
+                            id="description"
+                            className="textarea"
+                            placeholder="Condition details, edition, pickup spot…"
+                            value={formData.description}
+                            onChange={update('description')}
+                            maxLength={2000}
+                            aria-describedby="description-count"
+                        />
+                        <span className="field__hint" id="description-count">{formData.description.length}/2000 characters</span>
+                    </div>
                 </div>
 
-                <div className="form-group">
-                    <label htmlFor="condition">Condition:</label>
-                    <select
-                        id="condition"
-                        value={formData.condition}
-                        onChange={update('condition')}
-                        className="form-input"
-                        required
-                    >
-                        <option value="">Choose…</option>
-                        {CONDITIONS.map(option => <option key={option} value={option}>{option}</option>)}
-                    </select>
+                <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
+
+                <div className="form-actions">
+                    <button type="submit" className="btn btn-primary btn-lg submit-btn" disabled={submitting}>
+                        {submitting ? 'Posting…' : 'Post Item'}
+                    </button>
                 </div>
-            </div>
+            </form>
 
-            <div className="form-group">
-                <label htmlFor="price">Price:</label>
-                <input
-                    id="price"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={update('price')}
-                    className="form-input"
-                    required
-                />
-            </div>
-
-            <div className="form-group">
-                <label htmlFor="description">Description:</label>
-                <input
-                    id="description"
-                    type="text"
-                    value={formData.description}
-                    onChange={update('description')}
-                    className="form-input"
-                    maxLength={2000}
-                />
-            </div>
-
-            <div className="form-group">
-                <label htmlFor="image">Photo (required):</label>
-                <input
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={update('image')}
-                    className="form-input"
-                    required
-                />
-            </div>
-
-            <button type="submit" className="submit-btn" disabled={submitting}>
-                {submitting ? 'Posting…' : 'Post Item'}
-            </button>
-            <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
-        </form>
+            <p className="form-aside">
+                Want to change something you already posted? <Link to="/my-listings">Go to your listings</Link>.
+            </p>
+        </div>
     );
 }
 

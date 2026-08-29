@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { FiShoppingCart, FiTrash2 } from 'react-icons/fi';
 import { api } from '../services/api';
-import ListingCard from '../components/ListingCard';
+import { money } from '../components/ListingCard';
 import StatusMessage from '../components/StatusMessage';
-import '../styles/CartPage.css';
-
-const money = (value) => `$${(Number(value) || 0).toFixed(2)}`;
+import EmptyState from '../components/EmptyState';
 
 function CartPage() {
     const [items, setItems] = useState([]);
@@ -76,54 +76,87 @@ function CartPage() {
         }
     };
 
-    if (loading) return <div className="loading">Loading cart...</div>;
+    let body;
+    if (loading) {
+        body = <p className="muted" role="status">Loading cart…</p>;
+    } else if (items.length === 0) {
+        body = (
+            <EmptyState
+                className="empty-cart"
+                icon={<FiShoppingCart size={24} />}
+                title="Your cart is empty"
+                action={<Link to="/home" className="btn btn-primary">Browse items</Link>}
+            >
+                Add something from the marketplace and it will wait for you here.
+            </EmptyState>
+        );
+    } else {
+        body = (
+            <div className="cart-layout">
+                <div className="cart-items">
+                    {items.map(listing => (
+                        <div key={listing.id} className="cart-item">
+                            <img className="cart-item__thumb" src={api.imageUrl(listing)} alt="" />
+                            <div className="cart-item__info">
+                                <h3>{listing.title}</h3>
+                                <div className="listing-badges">
+                                    {listing.category && <span className="badge">{listing.category}</span>}
+                                    {listing.condition && <span className="badge badge--muted">{listing.condition}</span>}
+                                </div>
+                                {listing.description && <p className="cart-item__desc">{listing.description}</p>}
+                            </div>
+                            <div className="cart-item__side">
+                                <span className="item-price">{money(listing.price)}</span>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => handleRemove(listing)}
+                                    disabled={pendingId === listing.id || checkingOut}
+                                    aria-label={`Remove ${listing.title} from cart`}
+                                >
+                                    <FiTrash2 size={14} aria-hidden="true" />
+                                    {pendingId === listing.id ? 'Removing…' : 'Remove'}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <aside className="summary-box" aria-label="Order summary">
+                    <h2>Order summary</h2>
+                    <div className="summary-row">
+                        <span>Items ({items.length})</span>
+                        <span>{money(total)}</span>
+                    </div>
+                    <div className="summary-row">
+                        <span>Fees</span>
+                        <span>$0.00</span>
+                    </div>
+                    <div className="summary-total">
+                        <span>Total</span>
+                        <span>{money(total)}</span>
+                    </div>
+                    <button
+                        type="button"
+                        className="btn btn-primary btn-lg btn-block checkout-button"
+                        onClick={handleCheckout}
+                        disabled={checkingOut || pendingId !== null}
+                    >
+                        {checkingOut ? 'Processing…' : 'Proceed to Checkout'}
+                    </button>
+                </aside>
+            </div>
+        );
+    }
 
     return (
         <div className="cart-page">
-            <h1 className="cart-title">Shopping Cart</h1>
-            <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
-            <div className="cart-content">
-                <div className="cart-items">
-                    {items.length === 0 ? (
-                        <p className="empty-cart">Your cart is empty</p>
-                    ) : (
-                        items.map(listing => (
-                            <div key={listing.id} className="cart-item">
-                                <ListingCard
-                                    listing={listing}
-                                    onAction={handleRemove}
-                                    actionLabel={pendingId === listing.id ? 'Removing…' : 'Remove'}
-                                    busy={pendingId === listing.id || checkingOut}
-                                />
-                                <div className="item-price">{money(listing.price)}</div>
-                            </div>
-                        ))
-                    )}
-                </div>
-                {items.length > 0 && (
-                    <div className="cart-summary">
-                        <div className="summary-box">
-                            <h2>Order Summary</h2>
-                            <div className="summary-row">
-                                <span>Items ({items.length})</span>
-                                <span>{money(total)}</span>
-                            </div>
-                            <div className="summary-total">
-                                <span>Total</span>
-                                <span>{money(total)}</span>
-                            </div>
-                            <button
-                                type="button"
-                                className="checkout-button"
-                                onClick={handleCheckout}
-                                disabled={checkingOut || pendingId !== null}
-                            >
-                                {checkingOut ? 'Processing…' : 'Proceed to Checkout'}
-                            </button>
-                        </div>
-                    </div>
-                )}
+            <div className="page-header">
+                <h1 className="page-title">Your cart</h1>
+                {!loading && <span className="page-subtitle">{items.length} {items.length === 1 ? 'item' : 'items'}</span>}
             </div>
+            <StatusMessage type={status?.type}>{status?.text}</StatusMessage>
+            {body}
         </div>
     );
 }

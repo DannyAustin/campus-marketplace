@@ -13,13 +13,15 @@ Campus Marketplace is a full-stack web application where students can list, brow
 campus-marketplace/
 ├── Campus-MarketPlace/        # React frontend
 │   └── src/
-│       ├── components/        # Header, ListingCard, FilterBar, EditListingForm, StatusMessage, Layout
+│       ├── components/        # Header, Layout, AuthLayout, ListingCard, FilterBar, EditListingForm (modal),
+│       │                      # StatusMessage, EmptyState, ListingGridSkeleton
 │       ├── pages/             # HomePage, CartPage, NewListingPage, MyListingsPage, SoldItemsPage, SignIn/SignUp
 │       ├── hooks/             # useAuth (session), useListings (loader), useDebouncedValue
 │       ├── constants/         # listingOptions.js — categories, conditions, sort orders
 │       ├── context/           # AuthContext
+│       ├── utils/             # afterAuthPath — where to go after signing in
 │       ├── services/api.js    # every backend call, token handling
-│       └── styles/            # App.css (global), ListingCard.css, CartPage.css
+│       └── styles/App.css     # the whole design system: tokens (light + dark), layout, components
 └── Campus-MarketPlace-go/     # Go backend
     ├── main.go                # server + CORS
     ├── config.go              # environment variables
@@ -43,6 +45,8 @@ campus-marketplace/
 - Filters live in the URL (`/home?category=Textbooks&max_price=50`), so they survive refresh and can be shared
 - Cart with one-click checkout that can never sell the same item twice
 - "Sold" page showing which of your items have been bought
+- Responsive UI (phone → desktop) that follows the OS light/dark preference, keyboard-navigable
+  with WCAG AA colour contrast, skeleton loading and an accessible edit dialog
 
 ---
 
@@ -165,6 +169,16 @@ or buy your own listing; an item can only be sold once.
 - Set a strong `JWT_SECRET` and restrict `ALLOWED_ORIGINS` before exposing the server publicly. `.env` files are git-ignored so local secrets stay local.
 
 ---
+
+## Design system
+
+Everything visual lives in `src/styles/App.css`: CSS custom-property tokens (colours, radii, shadows)
+with a `prefers-color-scheme: dark` set, then base styles, the top bar, buttons (`.btn-*`), form
+fields (`.field`, `.input`, `.select`, `.textarea`, `.dropzone`), status banners, badges/chips, the
+listing grid and cards, skeletons, empty states, the auth split screen, the modal and the cart.
+Breakpoints: ≤1240px icon-only nav, ≤900px hamburger menu / stacked auth, ≤760px single-column
+forms, ≤600px two-column listing grid. Typography uses the system font stack (Inter if installed,
+otherwise the OS UI font) so the app makes no third-party requests.
 
 ## Notes
 

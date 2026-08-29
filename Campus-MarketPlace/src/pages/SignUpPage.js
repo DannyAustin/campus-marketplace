@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthContext } from '../context/AuthContext';
 import StatusMessage from '../components/StatusMessage';
+import AuthLayout from '../components/AuthLayout';
 import { afterAuthPath } from '../utils/afterAuthPath';
 
 function SignUpPage() {
@@ -30,19 +31,18 @@ function SignUpPage() {
     };
 
     return (
-        <div className="signup-page">
-            <div className="welcome-text-container">
-                <h2>Welcome to Campus MarketPlace</h2>
-                <p>Sell ANYTHING to your peers!</p>
-            </div>
-            <div className="signup-container">
-                <div className="background-overlay"></div>
-                <div className="SignUp">
-                    <h3>Create an Account</h3>
-                    <form onSubmit={handleSignUp}>
+        <AuthLayout>
+            <div className="auth-card">
+                <h2>Create your account</h2>
+                <p className="muted">It takes ten seconds — no email needed.</p>
+                <form onSubmit={handleSignUp}>
+                    <div className="field">
+                        <label htmlFor="signup-username">Username</label>
                         <input
+                            id="signup-username"
+                            className="input"
                             type="text"
-                            placeholder="Username (3-32 letters, numbers, . _ -)"
+                            placeholder="Username"
                             autoComplete="username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
@@ -51,28 +51,37 @@ function SignUpPage() {
                             maxLength={32}
                             pattern="[A-Za-z0-9_.\-]+"
                             title="3-32 characters: letters, numbers, '.', '_' or '-'"
+                            aria-describedby="signup-username-hint"
                         />
+                        <span className="field__hint" id="signup-username-hint">3–32 characters: letters, numbers, dots, underscores or dashes.</span>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="signup-password">Password</label>
                         <input
+                            id="signup-password"
+                            className="input"
                             type="password"
-                            placeholder="Password (at least 8 characters)"
+                            placeholder="Password"
                             autoComplete="new-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             minLength={8}
                             maxLength={72}
+                            aria-describedby="signup-password-hint"
                         />
-                        <button type="submit" disabled={submitting}>
-                            {submitting ? 'Creating account…' : 'Sign Up'}
-                        </button>
-                    </form>
-                    <StatusMessage type="error">{error}</StatusMessage>
-                    <button type="button" onClick={() => navigate('/signin', { state: location.state })} className="SignInButton">
-                        Already have an account? Sign In
+                        <span className="field__hint" id="signup-password-hint">At least 8 characters.</span>
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={submitting}>
+                        {submitting ? 'Creating account…' : 'Create account'}
                     </button>
-                </div>
+                </form>
+                <StatusMessage type="error">{error}</StatusMessage>
+                <p className="auth-switch">
+                    Already have an account? <Link to="/signin" state={location.state}>Sign in</Link>
+                </p>
             </div>
-        </div>
+        </AuthLayout>
     );
 }
 

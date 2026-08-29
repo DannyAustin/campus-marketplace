@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { FiShoppingCart, FiSearch, FiPackage } from 'react-icons/fi';
 import { useListings } from '../hooks/useListings';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { FILTER_KEYS } from '../constants/listingOptions';
 import ListingCard from '../components/ListingCard';
 import FilterBar from '../components/FilterBar';
 import StatusMessage from '../components/StatusMessage';
+import EmptyState from '../components/EmptyState';
+import ListingGridSkeleton from '../components/ListingGridSkeleton';
 import { api } from '../services/api';
 
 // Free-text inputs are debounced; chips and selects apply immediately.
@@ -87,12 +90,20 @@ function HomePage() {
 
     let results;
     if (loading) {
-        results = <div className="loading">Loading items...</div>;
+        results = <ListingGridSkeleton />;
     } else if (listings.length === 0) {
-        results = (
-            <div className="no-listings">
-                {hasActiveFilters ? 'Nothing matches your filters.' : "The market is empty. It's time you sell something!"}
-            </div>
+        results = hasActiveFilters ? (
+            <EmptyState
+                icon={<FiSearch size={24} />}
+                title="Nothing matches your filters."
+                action={<button type="button" className="btn btn-secondary" onClick={clearFilters}>Reset search</button>}
+            >
+                Try a different category, a wider price range, or fewer words.
+            </EmptyState>
+        ) : (
+            <EmptyState icon={<FiPackage size={24} />} title="The market is empty. It's time you sell something!">
+                Nobody else has listed anything yet — be the first.
+            </EmptyState>
         );
     } else {
         results = listings.map(listing => (
@@ -101,6 +112,7 @@ function HomePage() {
                 listing={listing}
                 onAction={handleAddToCart}
                 actionLabel={pendingId === listing.id ? 'Adding…' : 'Add to Cart'}
+                icon={<FiShoppingCart size={16} aria-hidden="true" />}
                 busy={pendingId === listing.id}
             />
         ));
@@ -108,7 +120,14 @@ function HomePage() {
 
     return (
         <div>
-            <h1 className="page-title">Available items</h1>
+            <div className="page-header">
+                <h1 className="page-title">Browse items</h1>
+                {!loading && (
+                    <span className="page-subtitle">
+                        {listings.length} {listings.length === 1 ? 'item' : 'items'}{hasActiveFilters ? ' match' : ' for sale'}
+                    </span>
+                )}
+            </div>
             <FilterBar
                 filters={filters}
                 onChange={setFilter}

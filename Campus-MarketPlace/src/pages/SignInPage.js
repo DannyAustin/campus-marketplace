@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthContext } from '../context/AuthContext';
 import StatusMessage from '../components/StatusMessage';
+import AuthLayout from '../components/AuthLayout';
 import { afterAuthPath } from '../utils/afterAuthPath';
 
 function SignInPage() {
@@ -29,17 +30,16 @@ function SignInPage() {
     };
 
     return (
-        <div className="signin-page">
-            <div className="welcome-text-container">
-                <h2>Welcome to Campus Marketplace</h2>
-                <p>Sell ANYTHING to your peers!</p>
-            </div>
-            <div className="signin-container">
-                <div className="background-overlay"></div>
-                <div className="SignIn">
-                    <h3>Login</h3>
-                    <form onSubmit={handleSignIn}>
+        <AuthLayout>
+            <div className="auth-card">
+                <h2>Sign in</h2>
+                <p className="muted">Welcome back — pick up where you left off.</p>
+                <form onSubmit={handleSignIn}>
+                    <div className="field">
+                        <label htmlFor="signin-username">Username</label>
                         <input
+                            id="signin-username"
+                            className="input"
                             type="text"
                             placeholder="Username"
                             autoComplete="username"
@@ -47,7 +47,12 @@ function SignInPage() {
                             onChange={(e) => setUsername(e.target.value)}
                             required
                         />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="signin-password">Password</label>
                         <input
+                            id="signin-password"
+                            className="input"
                             type="password"
                             placeholder="Password"
                             autoComplete="current-password"
@@ -55,21 +60,17 @@ function SignInPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
-                        <button type="submit" disabled={submitting}>
-                            {submitting ? 'Signing in…' : 'Login'}
-                        </button>
-                    </form>
-                    <StatusMessage type="error">{error}</StatusMessage>
-                    <button
-                        type="button"
-                        onClick={() => navigate('/signup', { state: location.state })}
-                        className="SignUpButton"
-                    >
-                        New User? Register
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={submitting}>
+                        {submitting ? 'Signing in…' : 'Sign in'}
                     </button>
-                </div>
+                </form>
+                <StatusMessage type="error">{error}</StatusMessage>
+                <p className="auth-switch">
+                    New here? <Link to="/signup" state={location.state}>Create an account</Link>
+                </p>
             </div>
-        </div>
+        </AuthLayout>
     );
 }
 
