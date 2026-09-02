@@ -7,8 +7,29 @@ same item twice.
 **React 18 SPA · Go REST API · MongoDB · JWT auth · light & dark themes**
 
 <p align="center">
+  <a href="https://campus-marketplace-opal-pi.vercel.app"><img src="https://img.shields.io/badge/Live_demo-Open_the_app-2563eb?style=for-the-badge&logo=vercel&logoColor=white" alt="Live demo"></a>
+</p>
+
+<p align="center">
   <img src="docs/screenshots/home-light.png" alt="Browse page: listing grid with category chips, condition, price and sort filters" width="900">
 </p>
+
+---
+
+## Try it
+
+**https://campus-marketplace-opal-pi.vercel.app**
+
+Create your own account, or sign in as one of the demo users to see the marketplace from the
+seller's side. The password for all three is `demo-password-123`.
+
+| User | What's there |
+|---|---|
+| `maya` | 4 listings, one of them already sold |
+| `jordan_lee` | 4 listings |
+| `alexchen` | Starts with headphones in the cart — check out to watch them turn into a sale |
+
+The API sleeps when idle, so the first request after a quiet spell can take a couple of seconds.
 
 ---
 
@@ -284,7 +305,6 @@ listing; an item sells exactly once.
 ```
 campus-marketplace/
 ├── docs/
-│   ├── DEPLOY.md              # step-by-step hosting guide
 │   └── screenshots/           # the images in this README
 ├── Campus-MarketPlace/        # React frontend
 │   └── src/
@@ -318,12 +338,11 @@ campus-marketplace/
 
 ## Deploying
 
-The repo ships with everything the hosting platforms need — a Dockerfile for the API, a Fly.io
-config with health checks and idle sleep, and SPA rewrite rules for Vercel/Netlify.
-
-**[docs/DEPLOY.md](docs/DEPLOY.md)** walks through it end to end: MongoDB Atlas → Go API on
-Fly.io (or Render) → React frontend on Vercel (or Netlify), including the CORS step that
-connects them. All three tiers are free.
+The live demo runs on **Vercel** (React frontend), **Fly.io** (Go API — sleeps when idle, wakes
+on the first request) and **MongoDB Atlas**. The repo carries what each platform needs: a
+multi-stage `Dockerfile` and `fly.toml` for the API, and `vercel.json` / `netlify.toml` SPA
+rewrites for the frontend. Wire the halves together with `REACT_APP_API_URL` on the frontend
+and `ALLOWED_ORIGINS` on the API.
 
 ## Roadmap
 
