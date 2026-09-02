@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -25,6 +26,26 @@ func writeError(w http.ResponseWriter, status int, message string) {
 func serverError(w http.ResponseWriter, context string, err error) {
 	log.Printf("%s: %v", context, err)
 	writeError(w, http.StatusInternalServerError, "Something went wrong on our side. Please try again.")
+}
+
+// HealthHandler reports whether the server is up and can reach MongoDB.
+// Hosting platforms poll this to decide if a deployment is live.
+//
+//	GET /health  -> 200 {"status":"ok"} | 503 {"status":"degraded"}
+func HealthHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+
+	if err := db.Client().Ping(ctx, nil); err != nil {
+		log.Println("health: database unreachable:", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "degraded", "database": "unreachable",
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status": "ok", "database": "connected",
+	})
 }
 
 // statusRecorder captures the status code written by a handler for logging.

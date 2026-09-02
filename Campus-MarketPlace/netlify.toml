@@ -1,0 +1,13 @@
+# Netlify: set the base directory to Campus-MarketPlace in the UI, or deploy
+# from the repo root with this file (paths below are relative to the repo root).
+[build]
+  base = "Campus-MarketPlace"
+  command = "npm run build"
+  publish = "build"
+
+# React Router owns the routes: serve index.html for anything that is not a
+# real file, so refreshing on /cart works instead of 404ing.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -230,6 +230,7 @@ All responses are JSON; errors look like `{"error": "human readable message"}`.
 
 | Method | Path                    | Auth | Description                                                          |
 |--------|-------------------------|------|----------------------------------------------------------------------|
+| GET    | `/health`               |      | Liveness + database reachability → `200 {status, database}` or `503`  |
 | POST   | `/register`             |      | `{username, password}` → `201 {token, user_id, username}`             |
 | POST   | `/login`                |      | `{username, password}` → `200 {token, user_id, username}`             |
 | GET    | `/me`                   | 🔒   | Validate the token → `{user_id, username}`                            |
@@ -282,7 +283,9 @@ listing; an item sells exactly once.
 
 ```
 campus-marketplace/
-├── docs/screenshots/          # the images in this README
+├── docs/
+│   ├── DEPLOY.md              # step-by-step hosting guide
+│   └── screenshots/           # the images in this README
 ├── Campus-MarketPlace/        # React frontend
 │   └── src/
 │       ├── components/        # Header, Layout, AuthLayout, ListingCard, FilterBar,
@@ -299,6 +302,8 @@ campus-marketplace/
 │       ├── App.js             # router + providers (the app shell)
 │       └── App.test.js        # the 12 frontend tests
 └── Campus-MarketPlace-go/     # Go backend
+    ├── Dockerfile             # static build for container hosts
+    ├── fly.toml               # Fly.io deployment config
     ├── main.go                # server, CORS, graceful shutdown
     ├── config.go              # environment variables
     ├── router.go              # endpoints
@@ -311,10 +316,19 @@ campus-marketplace/
     └── respond.go             # JSON helpers, access log, nosniff
 ```
 
+## Deploying
+
+The repo ships with everything the hosting platforms need — a Dockerfile for the API, a Fly.io
+config with health checks and idle sleep, and SPA rewrite rules for Vercel/Netlify.
+
+**[docs/DEPLOY.md](docs/DEPLOY.md)** walks through it end to end: MongoDB Atlas → Go API on
+Fly.io (or Render) → React frontend on Vercel (or Netlify), including the CORS step that
+connects them. All three tiers are free.
+
 ## Roadmap
 
 Multiple photos per listing and a listing detail page · buyer ↔ seller messaging · buyer
-purchase history · Docker + deploy config · CI.
+purchase history · CI.
 
 ## Notes
 

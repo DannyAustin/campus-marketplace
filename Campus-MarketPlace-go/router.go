@@ -15,6 +15,9 @@ const objectIDPattern = "[0-9a-fA-F]{24}"
 func SetupRoutes() http.Handler {
 	r := mux.NewRouter()
 
+	// Operations
+	r.HandleFunc("/health", HealthHandler).Methods(http.MethodGet)
+
 	// Auth
 	r.HandleFunc("/register", RegisterHandler).Methods(http.MethodPost)
 	r.HandleFunc("/login", LoginHandler).Methods(http.MethodPost)

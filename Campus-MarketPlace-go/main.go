@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/rs/cors"
@@ -43,8 +44,9 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Stop cleanly on Ctrl+C / SIGTERM so in-flight requests finish.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	// Stop cleanly on Ctrl+C and on SIGTERM (what container platforms send
+	// before killing the process) so in-flight requests finish.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {
 		<-ctx.Done()
