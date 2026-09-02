@@ -1,31 +1,31 @@
-# Fly.io configuration. Set the app name with `fly launch --name <your-app>`,
-# then set secrets (never put them in this file):
-#   fly secrets set JWT_SECRET=... MONGO_URI=... ALLOWED_ORIGINS=https://<frontend>
+# fly.toml app configuration file generated for campus-marketplace-api on 2026-09-02T18:57:30-04:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "campus-marketplace-api"
-primary_region = "iad"
+app = 'campus-marketplace-api'
+primary_region = 'iad'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PORT = "8080"
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # Sleep when idle and wake on the next request: free to run, ~1s cold start.
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
   [[http_service.checks]]
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "GET"
-    path = "/health"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
